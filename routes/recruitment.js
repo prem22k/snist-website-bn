@@ -27,13 +27,25 @@ router.get("/", (req, res) => {
  */
 router.post("/unlock", requireApiKey, async (req, res) => {
     try {
-        const { name, email, mobile, passingOutYear } = req.body;
+        const { name, email: rawEmail, mobile, passingOutYear } = req.body;
 
-        // Validate required fields
-        if (!name || !email || !mobile || !passingOutYear) {
+        // Validate required fields and explicitly check types to prevent NoSQL injection via objects
+        if (!name || !rawEmail || !mobile || !passingOutYear ||
+            typeof name !== 'string' || typeof rawEmail !== 'string' ||
+            typeof mobile !== 'string' || typeof passingOutYear !== 'string') {
             return res.status(400).json({
                 message: "error",
-                error: "Name, email, mobile, and passing out year are required fields"
+                error: "Name, email, mobile, and passing out year are required text fields"
+            });
+        }
+
+        const email = rawEmail.trim();
+
+        // Limit length to prevent ReDoS
+        if (email.length > 254 || name.length > 200 || mobile.length > 50) {
+            return res.status(400).json({
+                message: "error",
+                error: "Input fields exceed maximum allowed length"
             });
         }
 
@@ -68,7 +80,7 @@ router.post("/unlock", requireApiKey, async (req, res) => {
         };
 
         const candidate = await Recruitment.findOneAndUpdate(
-            { email },
+            { email: { $eq: email } },
             candidateData,
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );

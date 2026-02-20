@@ -61,6 +61,22 @@ router.post("/", requireApiKey, async (req, res) => {
       });
     }
 
+    // Explicit type checking to prevent NoSQL injection via object payloads
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof mobile !== 'string' || typeof rollNumber !== 'string') {
+      return res.status(400).json({
+        message: "error",
+        error: "Invalid input types"
+      });
+    }
+
+    // Limit length to prevent DoS
+    if (email.length > 254 || name.length > 200 || mobile.length > 50 || rollNumber.length > 50) {
+      return res.status(400).json({
+        message: "error",
+        error: "Input fields exceed maximum allowed length"
+      });
+    }
+
     // Upsert: Update existing member or create new one
     // This allows users to retry if email sending failed previously
     const memberData = {
@@ -77,7 +93,7 @@ router.post("/", requireApiKey, async (req, res) => {
     };
 
     await Registration2026.findOneAndUpdate(
-      { email },
+      { email: { $eq: email } },
       memberData,
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
