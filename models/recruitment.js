@@ -43,7 +43,7 @@ const RecruitmentSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    // PR / solution URL submitted by candidate
+    // Solution/work URL submitted by candidate (legacy field name retained)
     prUrl: {
         type: String
     },
